@@ -253,6 +253,7 @@ contract PausableToken is StandardToken, Pausable {
     return super.approve(_spender, _value);
   }
   function increaseApproval(address _spender, uint _addedValue) public whenNotPaused returns (bool success) {
+    require(_spender != address(0), "Zero address validation failed in approve function");
     return super.increaseApproval(_spender, _addedValue);
   }
   function decreaseApproval(address _spender, uint _subtractedValue) public whenNotPaused returns (bool success) {
@@ -289,6 +290,7 @@ contract ZTU is PausableToken {
 		_burn(msg.sender, _value);
 	}
 	function _burn(address _who, uint256 _value) internal {
+    require(_who != address(0) ,"Zero address validation failed in function burn");
 		require(_value <= balances[_who]);
 		balances[_who] = balances[_who].sub(_value);
 		totalSupply = totalSupply.sub(_value);

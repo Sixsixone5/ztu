@@ -182,12 +182,8 @@ contract ERC20 is ERC20Basic {
 contract StandardToken is ERC20 {
   using SafeMath for uint256;
   mapping (address => mapping (address => uint256)) internal allowed;
-	mapping(address => bool) tokenBlacklist;
-	event Blacklist(address indexed blackListed, bool value);
   mapping(address => uint256) balances;
   function transfer(address _to, uint256 _value) public returns (bool) {
-    require(tokenBlacklist[msg.sender] == false);
-    require(tokenBlacklist[_to] == false);
     require(_to != address(0));
     require(_value <= balances[msg.sender]);
     // SafeMath.sub will throw if there is not enough balance.
@@ -200,8 +196,6 @@ contract StandardToken is ERC20 {
     return balances[_owner];
   }
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
-    require(tokenBlacklist[msg.sender] == false);
-    require(tokenBlacklist[_to] == false);
     require(_to != address(0));
     require(_value <= balances[_from]);
     require(_value <= allowed[_from][msg.sender]);
@@ -235,12 +229,6 @@ contract StandardToken is ERC20 {
     return true;
   }
   
-  function _blackList(address _address, bool _isBlackListed) internal returns (bool) {
-	require(tokenBlacklist[_address] != _isBlackListed);
-	tokenBlacklist[_address] = _isBlackListed;
-	emit Blacklist(_address, _isBlackListed);
-	return true;
-  }
 }
 contract PausableToken is StandardToken, Pausable {
   function transfer(address _to, uint256 _value) public whenNotPaused returns (bool) {
@@ -258,11 +246,6 @@ contract PausableToken is StandardToken, Pausable {
   }
   function decreaseApproval(address _spender, uint _subtractedValue) public whenNotPaused returns (bool success) {
     return super.decreaseApproval(_spender, _subtractedValue);
-  }
-  
-  function blackListAddress(address listAddress,  bool isBlackListed) external whenNotPaused onlyOwner isSigned returns (bool success) {
-  revokeSignatures();
-	return super._blackList(listAddress, isBlackListed);
   }
   
 }

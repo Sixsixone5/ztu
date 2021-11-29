@@ -27,108 +27,35 @@ library SafeMath {
 }
 contract Ownable {
   address public owner;
-  address public signer1;
-  address public signer2;
 
   address public potentialOwner;
-  address public potentialSigner1;
-  address public potentialSigner2;
-
-  mapping(address => uint256) signatureTimer;
-  mapping(address => bool) signed;
 
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-  event SignerChanged(address indexed previousSigner, address indexed newSigner);
   event OwnerNominated(address indexed newOwner);
-  event SignerNominated(address indexed newSigner);
   /**
-   * @dev Throws if called by any account other than the owner or one of the signers.
+   * @dev Throws if called by any account other than the owner.
    */
+  
   modifier onlyOwner() {
-    require(msg.sender == owner || msg.sender == signer1 || msg.sender == signer2);
+    require(msg.sender == owner);
     _;
-  }
-
-  modifier isSigned() {
-    require (signed[owner] && signed[signer1] && signed[signer2]);
-    require (now < signatureTimer[owner]);
-    require (now < signatureTimer[signer1]);
-    require (now < signatureTimer[signer2]);
-    _;
-  }
-
-
-  function Sign() external {
-    require (msg.sender == owner || msg.sender == signer1 || msg.sender == signer2);
-    signed[msg.sender] = true;
-    signatureTimer[msg.sender] = now + 30 minutes;
-  }
-
-
-  function revokeSignatures() internal returns(bool){
-    signed[owner] = false;
-    signed[signer1] = false;
-    signed[signer2] = false;
-    signatureTimer[owner] = 0;
-    signatureTimer[signer1] = 0;
-    signatureTimer[signer2] = 0;
-    return true;
   }
 
   /**
-   * @dev Allows the current owner and signers to transfer control of the contract to a newOwner or newSigner.
-   * @param newOwner and @param newSigner The addresses to transfer ownership to.
+   * @dev Allows the current ownerto transfer control of the contract to a newOwner.
+   * @param newOwner The addresses to transfer ownership to.
    */
 
   function transferOwnership(address newOwner) external onlyOwner{
     require(newOwner != address(0));
-    require(newOwner != signer1);
-    require(newOwner != signer2);
-    require(signed[signer1] && signed[signer2]);
-    require(now < signatureTimer[signer1] && now < signatureTimer[signer2]);
-    revokeSignatures();
     potentialOwner = newOwner;
     emit OwnerNominated(newOwner);    
-  }
-
-  function replaceSigner1(address newSigner) external onlyOwner{
-    require(newSigner != address(0));
-    require(newSigner != signer1);
-    require(newSigner != signer2);
-    require (signed[owner] && signed[signer2]);
-    require (now < signatureTimer[owner] && now < signatureTimer[signer2]);
-    revokeSignatures();
-    potentialSigner1 = newSigner;
-    emit SignerNominated(potentialSigner1);
-  }
-
-  function replaceSigner2(address newSigner) external onlyOwner{
-    require(newSigner != address(0));
-    require(newSigner != signer1);
-    require(newSigner != signer2);
-    require (signed[owner] && signed[signer1]);
-    require (now< signatureTimer[owner] && now < signatureTimer[signer1]);
-    revokeSignatures();
-    potentialSigner2 = newSigner;
-    emit SignerNominated(potentialSigner2);
   }
 
   function acceptNewOwner() external {
     require(msg.sender == potentialOwner); 
     emit OwnershipTransferred(owner, potentialOwner);
     owner = potentialOwner;
-  }
-
-  function acceptNewSigner1() external {
-    require(msg.sender == potentialSigner1); 
-    signer1 = potentialSigner1;
-    emit SignerChanged(signer1, potentialSigner1);
-  }
-
-  function acceptNewSigner2() external {
-    require(msg.sender == potentialSigner2); 
-    signer2 = potentialSigner2;
-    emit SignerChanged(signer2, potentialSigner2);
   }
   
 }
@@ -153,18 +80,16 @@ contract Pausable is Ownable {
   /**
    * @dev called by the owner to pause, triggers stopped state
    */
-  function pause() onlyOwner whenNotPaused isSigned external {
+  function pause() onlyOwner whenNotPaused external {
     paused = true;
     emit Pause();
-    revokeSignatures();
   }
   /**
    * @dev called by the owner to unpause, returns to normal state
    */
-  function unpause() onlyOwner whenPaused isSigned external {
+  function unpause() onlyOwner whenPaused external {
     paused = false;
     emit Unpause();
-    revokeSignatures();
   }
 }
 contract ERC20Basic {
@@ -256,7 +181,7 @@ contract ZTU is PausableToken {
     event Mint(address indexed from, address indexed to, uint256 value);
     event Burn(address indexed burner, uint256 value);
 	
-    constructor(string memory _name, string memory _symbol, uint256 _decimals, uint256 _supply, address tokenOwner, address tokenSigner1, address tokenSigner2) public {
+    constructor(string memory _name, string memory _symbol, uint256 _decimals, uint256 _supply, address tokenOwner) public {
         require(tokenOwner != address(0), "Zero address validation failed in constructor");
         name = _name;
         symbol = _symbol;
@@ -264,8 +189,6 @@ contract ZTU is PausableToken {
         totalSupply = _supply * 10**_decimals;
         balances[tokenOwner] = totalSupply;
         owner = tokenOwner;
-        signer1 = tokenSigner1;
-        signer2 = tokenSigner2;
         emit Transfer(address(0), tokenOwner, totalSupply);
     }
 	
@@ -280,10 +203,9 @@ contract ZTU is PausableToken {
 		emit Burn(_who, _value);
 		emit Transfer(_who, address(0), _value);
 	}
-    function mint(address account, uint256 amount) onlyOwner isSigned external {
+    function mint(address account, uint256 amount) onlyOwner external {
         totalSupply = totalSupply.add(amount);
         balances[account] = balances[account].add(amount);
-        revokeSignatures();
         emit Mint(address(0), account, amount);
         emit Transfer(address(0), account, amount);
     }
